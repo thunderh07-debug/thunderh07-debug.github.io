@@ -1,0 +1,28 @@
+body {
+    font-family: 'Cairo', sans-serif;
+    background: linear-gradient(135deg, #a8ff78, #78ffd6);
+    text-align: center;
+}
+#board {
+    width: 400px;
+    height: 400px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    border: 5px solid #333;
+    background: #fff8;
+}
+.cell {
+    border: 1px solid #0003;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:bold;
+    position:relative;
+}
+.player {
+    width:20px;height:20px;border-radius:50%;
+    position:absolute;bottom:2px;right:2px;
+    animation: pop 0.5s ease;
+}
+.p1 { background:red; }
+.p2 { background:blue; }
+@keyframes pop { from{transform:scale(0);} to{transform:scale(1);} }

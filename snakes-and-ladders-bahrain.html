@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>لعبة السلم والثبات - لعب جماعي 2-4 لاعبين</title>
+  <style>
+    :root{--cell:48px}
+    body{font-family: Tahoma, Arial, sans-serif;background:#f6f9fc;color:#111;margin:0;padding:20px;}
+    h1{margin:0 0 10px;font-size:20px}
+    .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .controls{background:white;padding:12px;border-radius:10px;box-shadow:0 4px 14px rgba(2,6,23,.06)}
+    label{display:inline-block;margin:0 8px 0 0}
+    button{padding:8px 12px;border-radius:8px;border:0;background:#1d4ed8;color:white;cursor:pointer}
+    button:disabled{opacity:.5;cursor:default}
+    #board{margin-top:16px;display:grid;grid-template-columns:repeat(10,var(--cell));gap:4px;direction:ltr}
+    .cell{width:var(--cell);height:var(--cell);background:white;border-radius:6px;display:flex;flex-direction:column;justify-content:space-between;padding:4px;font-size:11px;box-shadow:0 1px 3px rgba(2,6,23,.06)}
+    .cell .num{font-weight:700;font-size:10px;opacity:.7}
+    .players-indicators{display:flex;gap:6px}
+    .player-token{width:18px;height:18px;border-radius:50%;display:inline-block;border:2px solid white}
+    .p1{background:#ef4444}
+    .p2{background:#10b981}
+    .p3{background:#f59e0b}
+    .p4{background:#6366f1}
+    #log{margin-top:10px;background:#fff;padding:8px;border-radius:8px;font-size:13px;max-height:120px;overflow:auto}
+    .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.4);}
+    .card{background:white;padding:18px;border-radius:12px;max-width:540px;width:92%;box-shadow:0 8px 30px rgba(2,6,23,.25)}
+    .options{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+    .option{padding:10px;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer}
+    .option:hover{background:#f3f4f6}
+    .small{font-size:12px;color:#555}
+    footer{margin-top:14px;color:#555}
+    .legend{display:flex;gap:10px;align-items:center}
+    .board-row{display:contents}
+  </style>
+</head>
+<body>
+  <h1>لعبة السلم والثبات (2-4 لاعبين) — أسئلة عن مملكة البحرين بعد كل رمية</h1>
+  <div class="top">
+    <div class="controls">
+      <label>عدد اللاعبين:
+        <select id="numPlayers">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+        </select>
+      </label>
+      <label>أسماء اللاعبين (اختياري):</label>
+      <input id="names" placeholder="افصل الأسماء بفاصلة (مثال: علي,سارة)" />
+      <button id="startBtn">ابدأ اللعبة</button>
+    </div>
+    <div style="margin-left:auto; text-align:left">
+      <div class="legend small">
+        <span class="player-token p1" title="لاعب 1"></span> لاعب 1
+        <span class="player-token p2" title="لاعب 2"></span> لاعب 2
+        <span class="player-token p3" title="لاعب 3"></span> لاعب 3
+        <span class="player-token p4" title="لاعب 4"></span> لاعب 4
+      </div>
+      <div class="small">قواعد سريعة: بعد كل رمية نرد سيظهر سؤال عن البحرين. إن أجبت صح تتحرك بعدد الخطوات بالكامل. إن أخطأت تتحرك خطوة واحدة فقط.</div>
+    </div>
+  </div>
+
+  <div id="board"></div>
+
+  <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+    <div>
+      <button id="rollBtn" disabled>رمّي النرد 🎲</button>
+      <div class="small" id="currentTurn"></div>
+    </div>
+    <div id="diceFace" class="small">مجموع الرمية: -</div>
+  </div>
+
+  <div id="log"></div>
+
+  <!-- Modal for question -->
+  <div id="questionModal" class="modal" style="display:none">
+    <div class="card">
+      <div id="questionText" style="font-weight:700"></div>
+      <div id="questionInfo" class="small" style="margin-top:6px;color:#333">اختر الإجابة الصحيحة</div>
+      <div class="options" id="optionsArea"></div>
+      <div style="margin-top:12px;text-align:left">
+        <button id="skipBtn">تخطي (تحرك 1 خطوة)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // إنشاء اللوح بشكل صحيح
+    const boardEl = document.getElementById('board');
+    const cells = Array(101); // cells[1] الى cells[100]
+    for(let r=10;r>=1;r--){
+      const rowNum = 11 - r; // الصف من 1..10
+      const reverse = rowNum % 2 === 0;
+      for(let c=1;c<=10;c++){
+        const col = reverse ? (11-c) : c; // استخدام 11-c ليعطي 10..1 اذا معكوس
+        const n = (r-1)*10 + col;
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.innerHTML = `<div class="num">${n}</div><div class="tokens" style="display:flex;gap:2px;justify-content:flex-end"></div>`;
+        boardEl.appendChild(cell);
+        if(n >= 1 && n <= 100) {
+          cells[n] = cell;
+        }
+      }
+    }
+
+    // سلالم وحيات (السلم والثعبان)
+    const jumps = {
+      4:14,   9:31, 17:7, 20:38, 28:84, 40:59, 51:67, 54:34, 62:19, 63:81, 64:60, 71:91, 87:24, 93:73, 95:75, 99:78
+    };
+
+    const defaultQuestions = [
+      {q: 'ما هي عاصمة مملكة البحرين؟', choices: ['المنامة','الرفاع','المحرق','أم الحصم'], a:0},
+      {q: 'ما العملة الرسمية في البحرين؟', choices: ['دينار بحريني','درهم','ريال','دولار'], a:0},
+      {q: 'أي من هذه الجزر جزء من البحرين؟', choices: ['جزر المحرق','جزر فوكلاند','جزيرة كريت','جزيرة كوريا'], a:0},
+      {q: 'متى نالت البحرين استقلالها الرسمي؟', choices: ['1971','1960','1981','1990'], a:0},
+      {q: 'ما اسم الحاكم (الملك) الحالي لمملكة البحرين؟', choices: ['حمد بن عيسى آل خليفة','ناصر بن حمد','حمد بن سلمان','ملك غير معروف'], a:0},
+      {q: 'ما الرياضة الأبرز تقليدياً في البحرين؟', choices: ['سباقات الهجن','كرة القدم','كرة السلة','السباحة'], a:0},
+      {q: 'ما اسم المدينة التي تشتهر بسوق الذهب في البحرين؟', choices: ['المنامة','المحرق','الرفاع','جزر حوار'], a:0},
+      {q: 'ما هو الشيء الذي يشتهر به خور البحرين تاريخياً؟', choices: ['صيد اللؤلؤ','الثلوج','الجبال','الغابات الكثيفة'], a:0}
+    ];
+
+    // عناصر واجهة
+    const startBtn = document.getElementById('startBtn');
+    const numPlayersSel = document.getElementById('numPlayers');
+    const namesInput = document.getElementById('names');
+    const rollBtn = document.getElementById('rollBtn');
+    const diceFace = document.getElementById('diceFace');
+    const log = document.getElementById('log');
+    const currentTurnEl = document.getElementById('currentTurn');
+    const qModal = document.getElementById('questionModal');
+    const qText = document.getElementById('questionText');
+    const optionsArea = document.getElementById('optionsArea');
+    const skipBtn = document.getElementById('skipBtn');
+
+    let players = [];
+    let turnIndex = 0;
+    let questions = defaultQuestions.slice();
+
+    function logMsg(txt){
+      const d = document.createElement('div'); d.textContent = txt; log.prepend(d);
+    }
+
+    function startGame(){
+      // reset
+      clearBoardTokens();
+      players = [];
+      const n = parseInt(numPlayersSel.value,10);
+      const names = namesInput.value.split(',').map(s=>s.trim()).filter(x=>x);
+      for(let i=0;i<n;i++){
+        players.push({name: names[i]||('اللاعب '+(i+1)), pos:0, cls: 'p'+(i+1)});
+      }
+      turnIndex = 0;
+      renderAllTokens();
+      rollBtn.disabled = false;
+      log.innerHTML = '';
+      logMsg('بدأت اللعبة — عدد اللاعبين '+players.length);
+      updateTurnText();
+      diceFace.textContent = "مجموع الرمية: -";
+      questions = defaultQuestions.slice();
+    }
+
+    function updateTurnText(){
+      const p = players[turnIndex];
+      currentTurnEl.textContent = `دور: ${p.name}`;
+    }
+
+    function clearBoardTokens(){
+      for(let i=1;i<=100;i++){
+        if(cells[i]) {
+          const ta = cells[i].querySelector('.tokens'); ta.innerHTML='';
+        }
+      }
+    }
+
+    function renderAllTokens(){
+      clearBoardTokens();
+      players.forEach((pl,idx)=>{
+        const pos = pl.pos || 0;
+        if(pos>0 && pos<=100 && cells[pos]){
+          const ta = cells[pos].querySelector('.tokens');
+          const el = document.createElement('span'); el.className = 'player-token '+pl.cls; el.title = pl.name; ta.appendChild(el);
+        }
+      });
+    }
+
+    function rollDice(){
+      rollBtn.disabled = true;
+      const d1 = Math.floor(Math.random()*6)+1;
+      const d2 = Math.floor(Math.random()*6)+1;
+      const sum = d1 + d2;
+      diceFace.textContent = `ألقيت: ${d1} + ${d2} = ${sum}`;
+      // show question modal before moving
+      showQuestionForCurrent(sum);
+    }
+
+    function showQuestionForCurrent(sum){
+      // pick a random question
+      if(questions.length===0) questions = defaultQuestions.slice();
+      const idx = Math.floor(Math.random()*questions.length);
+      const q = questions.splice(idx,1)[0];
+      qText.textContent = q.q;
+      optionsArea.innerHTML = '';
+      q.choices.forEach((choice,i)=>{
+        const btn = document.createElement('div'); btn.className='option'; btn.textContent = choice; btn.onclick = ()=>{
+          const correct = i===q.a;
+          closeQuestionModal();
+          handleAnswerResult(correct,sum);
+        };
+        optionsArea.appendChild(btn);
+      });
+      skipBtn.onclick = ()=>{ closeQuestionModal(); handleAnswerResult(false,sum); };
+      qModal.style.display='flex';
+    }
+
+    function closeQuestionModal(){ qModal.style.display='none'; }
+
+    function handleAnswerResult(correct,sum){
+      const p = players[turnIndex];
+      if(correct){
+        logMsg(`${p.name} أجاب صحيحاً! يتحرك ${sum} خطوة.`);
+        movePlayer(turnIndex, sum);
+      } else {
+        logMsg(`${p.name} أجاب خطأ. يتحرك 1 خطوة فقط.`);
+        movePlayer(turnIndex, 1);
+      }
+    }
+
+    function movePlayer(i, steps){
+      const pl = players[i];
+      let newPos = pl.pos + steps;
+      if(newPos>100){
+        logMsg(`${pl.name} تحرك لكن تجاوز 100 — يبقى في مكانه حتى يرمى بالرقم المناسب`);
+        // do not move
+      } else {
+        pl.pos = newPos;
+        logMsg(`${pl.name} إلى الخانة ${pl.pos}`);
+        // check jumps
+        if(jumps[pl.pos]){
+          const dest = jumps[pl.pos];
+          if(dest > pl.pos){
+            logMsg(`سلم! ${pl.name} يصعد إلى ${dest}`);
+          } else {
+            logMsg(`ثعبان! ${pl.name} ينزل إلى ${dest}`);
+          }
+          pl.pos = dest;
+          logMsg(`${pl.name} الآن في الخانة ${pl.pos}`);
+        }
+      }
+      renderAllTokens();
+      // check win
+      if(pl.pos === 100){
+        logMsg(`🎉 ${pl.name} فاز بالمباراة!`);
+        rollBtn.disabled = true;
+        currentTurnEl.textContent = `${pl.name} فاز!`;
+        return;
+      }
+      // next turn
+      turnIndex = (turnIndex + 1) % players.length;
+      updateTurnText();
+      rollBtn.disabled = false;
+    }
+
+    startBtn.addEventListener('click', ()=>{
+      startGame();
+    });
+    rollBtn.addEventListener('click', ()=>{ rollDice(); });
+
+    // No need for DOMContentLoaded logic since everything loads in the right order
+
+  </script>
+
+</body>
+</html>

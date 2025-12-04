@@ -2,14 +2,14 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>لعبة متاهة - 3 مراحل مع أسئلة</title>
   <style>
     :root{--bg:#071129;--card:#0b1a2a;--accent:#06b6d4;--danger:#ef4444;--muted:#94a3b8}
-    *{box-sizing:border-box;font-family:Inter, system-ui, Arial, sans-serif}
+    *{box-sizing:border-box;font-family:Inter,system-ui,Arial,sans-serif}
     html,body{height:100%;margin:0;background:linear-gradient(180deg,#031225,#07182a);color:#e6eef6}
     .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-    .game{width:980px;max-width:98%;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
+    .game{width:980px;max-width:99%;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:14px;padding:8px 4px;border:1px solid rgba(255,255,255,0.03)}
     header{display:flex;justify-content:space-between;align-items:center}
     h1{margin:0;font-size:20px}
     .info{display:flex;gap:12px;align-items:center}
@@ -18,18 +18,44 @@
     .heart.lost{background:rgba(255,255,255,0.06);opacity:0.36}
     .stage{font-size:14px;color:var(--muted)}
 
-    .board-and-controls{display:flex;gap:16px;margin-top:12px}
-    .board{width:680px;height:520px;background:#071b2b;border-radius:10px;padding:12px;display:grid;align-items:center;justify-items:center}
-    .grid{width:640px;height:480px;display:grid;grid-template-columns:repeat(16,1fr);grid-template-rows:repeat(12,1fr);gap:2px;background:#041424;padding:6px;border-radius:8px}
-
+    .board-and-controls{display:flex;gap:12px;margin-top:8px;}
+    .board{width:100%;max-width:700px;background:#071b2b;border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;}
+    .grid{width:100%;max-width:640px;aspect-ratio:4/3;display:grid;grid-template-columns:repeat(16,1fr);grid-template-rows:repeat(12,1fr);gap:2px;background:#041424;padding:6px;border-radius:8px}
     .cell{width:100%;height:100%;background:#072233;border-radius:3px}
     .cell.wall{background:#0f1720}
     .cell.exit{background:linear-gradient(180deg,#06b6d4,#8b5cf6)}
     .player{background:#ffd166;display:flex;align-items:center;justify-content:center;font-weight:700}
 
-    .sidebar{flex:1;min-width:260px}
+    .control-area{display:flex;flex-direction:column;align-items:center;width:100%;margin-top:12px;}
+    .control-buttons{
+        display:none;
+        flex-direction:column;
+        gap:12px;
+        align-items:center;
+        margin:0 auto;
+        width:100%;
+        max-width:340px;
+    }
+    .ctrl-row{display:flex;gap:12px;justify-content:center;}
+    .ctrl-btn{
+        width:68px;
+        height:68px;
+        border-radius:16px;
+        background:var(--accent);
+        border:none;
+        font-size:30px;
+        font-weight:700;
+        color:#072133;
+        touch-action:manipulation;
+        box-shadow:0 2px 12px 0 rgba(6,182,212,0.09);
+        transition:background .15s;
+    }
+    .ctrl-btn:active{background:var(--danger);color:#fff}
+    .ctrl-btn:focus{outline:3px solid var(--accent);background:#3edbf8}
+
+    .sidebar{flex:1;min-width:240px}
     .panel{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px}
-    button{background:var(--accent);border:none;padding:10px 12px;border-radius:8px;color:#072133;font-weight:700;cursor:pointer}
+    button{background:var(--accent);border:none;padding:10px 12px;border-radius:8px;color:#072133;font-weight:700;cursor:pointer;font-size:17px;}
     .ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
 
     .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:60}
@@ -40,12 +66,32 @@
 
     .footer{margin-top:12px;color:var(--muted);font-size:13px}
 
-    /* small responsive */
     @media (max-width:900px){
+      .game{width:100vw;}
       .board-and-controls{flex-direction:column}
-      .board{width:100%;height:auto}
-      .grid{width:100%;height:360px}
+      .board{max-width:100vw;}
+      .sidebar{min-width:0;}
+      .control-area{margin-top:6px;}
+      .grid{height:54vw;max-width:100vw;min-height:220px;}
     }
+    @media (max-width:600px){
+      .wrap,body,html{padding:0}
+      .game{padding:1px;}
+      .board{padding:2px;}
+      .grid{height:57vw;min-height:130px;}
+      .control-buttons{display:flex;}
+      .ctrl-btn{width:50px;height:50px;font-size:23px;}
+      .panel{padding:9px;}
+      button{font-size:15px;}
+    }
+
+    @media (max-width:440px){
+      h1{font-size:17px;}
+      .ctrl-btn{width:36px;height:36px;font-size:16px;}
+      .panel{padding:7px;}
+      button{font-size:13px;}
+    }
+
   </style>
 </head>
 <body>
@@ -62,7 +108,19 @@
       <div class="board-and-controls">
         <div class="board panel">
           <div class="grid" id="grid" tabindex="0" aria-label="لوحة المتاهة"></div>
-          <div style="margin-top:8px;color:var(--muted);font-size:13px">استخدم مفاتيح الأسهم أو WASD للحركة. الهدف: الوصول لباب الخروج.</div>
+          <div class="control-area">
+            <div class="control-buttons" id="controlsMobile">
+              <div class="ctrl-row">
+                <button class="ctrl-btn" id="ctrlUp" title="أعلى">⬆</button>
+              </div>
+              <div class="ctrl-row">
+                <button class="ctrl-btn" id="ctrlLeft" title="يسار">➡</button>
+                <button class="ctrl-btn" id="ctrlDown" title="أسفل">⬇</button>
+                <button class="ctrl-btn" id="ctrlRight" title="يمين">⬅</button>
+              </div>
+            </div>
+            <div style="margin-top:8px;color:var(--muted);font-size:13px">استخدم مفاتيح الأسهم أو الأزرار أدناه للحركة. الهدف: الوصول لباب الخروج.</div>
+          </div>
         </div>
 
         <aside class="sidebar">
@@ -75,15 +133,12 @@
               <li>الإجابة الخاطئة تعيدك للمرحلة السابقة وتفقد قلباً.</li>
               <li>لديك 4 قلوب — إن فُقدت جميعها تخسر اللعبة.</li>
             </ul>
-
             <div style="margin-top:12px;display:flex;gap:8px">
               <button id="restart">إعادة بدء</button>
               <button class="ghost" id="hint">إظهار تلميح</button>
             </div>
-
             <div style="margin-top:12px;color:var(--muted)">الحالة: <span id="status">جاهز</span></div>
           </div>
-
           <div class="panel" style="margin-top:12px">
             <div style="font-weight:700">الإحصاءات</div>
             <div style="margin-top:8px;color:var(--muted)">المرحلة الحالية: <span id="statStage">1</span></div>
@@ -92,7 +147,6 @@
           </div>
         </aside>
       </div>
-
       <div class="footer"> .</div>
     </div>
   </div>
@@ -108,7 +162,6 @@
       </div>
     </div>
   </div>
-
   <!-- Game over overlay -->
   <div class="overlay" id="gameOverOverlay" aria-hidden="true">
     <div class="card" style="text-align:center">
@@ -117,7 +170,6 @@
       <div style="margin-top:12px"><button id="tryAgain">البدء من جديد</button></div>
     </div>
   </div>
-
   <script>
     // Game configuration
     const gridCols = 16, gridRows = 12; // 16x12 cells
@@ -129,7 +181,6 @@
     // Define three simple maze maps (0=free,1=wall,2=player start,3=exit)
     // Each map is an array of gridRows * gridCols numbers in row-major order
     const maps = [
-      // Stage 1 - easy
       [
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
         1,2,0,0,0,0,0,1,0,0,0,0,0,3,0,1,
@@ -144,7 +195,6 @@
         1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,1,
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
       ],
-      // Stage 2 - medium
       [
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
         1,2,0,1,0,0,0,1,0,0,1,0,0,0,3,1,
@@ -159,7 +209,6 @@
         1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
       ],
-      // Stage 3 - hard
       [
         1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
         1,2,0,1,0,0,0,1,0,1,0,0,0,1,3,1,
@@ -176,7 +225,6 @@
       ]
     ];
 
-    // Questions per stage (3 sets). Each question: text, options(array), correct index (0-based), hint
     const questions = [
       {text:'ما عدد خطوات إتخاذ القرار التربوي؟', options:['تسع خطوات','ثلاث خطوات','خمس خطوات'], correct:0, hint:'إتخاذ قرار تربوي ليست بعملية سهلة'},
       {text:'ما الخطوة الأخيرة في إتخاذ قرار تربوي؟', options:['جمع المعلومات','التقييم','تنفيذ القرار'], correct:1, hint:'الانتهاء من المهمة لا يعني نهاية العمل'},
@@ -197,23 +245,49 @@
     const qText = document.getElementById('qText');
     const qOptions = document.getElementById('qOptions');
     const closeQ = document.getElementById('closeQ');
-
     const gameOverOverlay = document.getElementById('gameOverOverlay');
     const gameOverMsg = document.getElementById('gameOverMsg');
     const tryAgain = document.getElementById('tryAgain');
+    // Mobile controls
+    const controlsMobile = document.getElementById("controlsMobile");
+    const ctrlUp    = document.getElementById("ctrlUp");
+    const ctrlDown  = document.getElementById("ctrlDown");
+    const ctrlLeft  = document.getElementById("ctrlLeft");
+    const ctrlRight = document.getElementById("ctrlRight");
 
-    // Internal state
     let map = []; // current map array
     let playerPos = {x:0,y:0};
+
+    // Show mobile controls on mobile devices always (force show)
+    function showMobileControls(){
+      controlsMobile.style.display="flex";
+    }
+
+    window.addEventListener("resize", showMobileControls);
 
     function init(){
       renderHearts();
       loadStage(stage);
       setupControls();
+      showMobileControls();
       document.getElementById('restart').addEventListener('click', ()=>resetGame());
       document.getElementById('hint').addEventListener('click', ()=>showHint());
       closeQ.addEventListener('click', ()=>{ hideQuestion(false); });
       tryAgain.addEventListener('click', ()=>{ gameOverOverlay.style.display='none'; resetGame(); });
+
+      // Mobile controls
+      ctrlUp.addEventListener("touchstart", e=>{e.preventDefault();movePlayerDirection("up");});
+      ctrlDown.addEventListener("touchstart", e=>{e.preventDefault();movePlayerDirection("down");});
+      ctrlLeft.addEventListener("touchstart", e=>{e.preventDefault();movePlayerDirection("left");});
+      ctrlRight.addEventListener("touchstart", e=>{e.preventDefault();movePlayerDirection("right");});
+
+      ctrlUp.addEventListener("click", ()=>movePlayerDirection("up"));
+      ctrlDown.addEventListener("click", ()=>movePlayerDirection("down"));
+      ctrlLeft.addEventListener("click", ()=>movePlayerDirection("left"));
+      ctrlRight.addEventListener("click", ()=>movePlayerDirection("right"));
+
+      gridEl.addEventListener('touchstart', ()=>gridEl.focus());
+      gridEl.addEventListener('click', ()=>gridEl.focus());
     }
 
     function renderHearts(){
@@ -236,7 +310,6 @@
     function buildGrid(){
       gridEl.innerHTML = '';
       gridEl.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
-      // find player start
       for(let r=0;r<gridRows;r++){
         for(let c=0;c<gridCols;c++){
           const idx = r*gridCols + c;
@@ -252,7 +325,6 @@
     }
 
     function placePlayer(){
-      // remove any existing player
       document.querySelectorAll('.player').forEach(p=>p.classList.remove('player'));
       const el = document.getElementById(`cell-${playerPos.y}-${playerPos.x}`);
       if(el) el.classList.add('player');
@@ -264,47 +336,52 @@
         if(!keys.includes(e.key)) return;
         e.preventDefault();
         let dx=0, dy=0;
-
-        // FIXED: In RTL, logical directions must be corrected.
-        // In RTL: ArrowLeft should mean "move right" and ArrowRight should mean "move left"
-        // Similarly for A/D keys
         if(document.documentElement.dir === "rtl") {
           if(e.key==='ArrowUp' || e.key==='w' || e.key==='W') dy=-1;
           if(e.key==='ArrowDown' || e.key==='s' || e.key==='S') dy=1;
-          if(e.key==='ArrowLeft' || e.key==='d' || e.key==='D') dx=1;   // ArrowLeft -> right, D->right
-          if(e.key==='ArrowRight' || e.key==='a' || e.key==='A') dx=-1; // ArrowRight -> left, A->left
-        } else { // normal LTR
+          if(e.key==='ArrowLeft' || e.key==='d' || e.key==='D') dx=1;
+          if(e.key==='ArrowRight' || e.key==='a' || e.key==='A') dx=-1;
+        } else {
           if(e.key==='ArrowUp' || e.key==='w' || e.key==='W') dy=-1;
           if(e.key==='ArrowDown' || e.key==='s' || e.key==='S') dy=1;
           if(e.key==='ArrowLeft' || e.key==='a' || e.key==='A') dx=-1;
           if(e.key==='ArrowRight' || e.key==='d' || e.key==='D') dx=1;
         }
-
         movePlayer(dx,dy);
       });
+    }
 
-      // make grid focusable for mobile (simple tap to focus)
-      gridEl.addEventListener('click', ()=>gridEl.focus());
+    function movePlayerDirection(dir){
+      let dx=0,dy=0;
+      if(document.documentElement.dir=="rtl"){
+        if(dir==="up")dy=-1;
+        if(dir==="down")dy=1;
+        if(dir==="right")dx=1;
+        if(dir==="left")dx=-1;
+      }else{
+        if(dir==="up")dy=-1;
+        if(dir==="down")dy=1;
+        if(dir==="right")dx=1;
+        if(dir==="left")dx=-1;
+      }
+      movePlayer(dx,dy);
     }
 
     function movePlayer(dx,dy){
       const nx = playerPos.x + dx; const ny = playerPos.y + dy;
       if(nx<0||nx>=gridCols||ny<0||ny>=gridRows) return;
       const val = map[ny*gridCols + nx];
-      if(val===1) return; // wall
+      if(val===1) return;
       playerPos = {x:nx,y:ny};
       placePlayer();
-      // check exit
-      if(val===3){ // reached exit of current stage
+      if(val===3){
         attempts++;
         attemptsEl.textContent = attempts;
-        // show question overlay for this stage
         showQuestionForStage(stage);
       }
     }
 
     function showQuestionForStage(s){
-      // pick question index (we have exactly 3 questions)
       const q = questions[s-1];
       qTitle.textContent = `سؤال بعد المرحلة ${s}`;
       qText.textContent = q.text;
@@ -319,41 +396,33 @@
 
     function hideQuestion(tookAction=true){
       qOverlay.style.display='none'; qOverlay.setAttribute('aria-hidden','true');
-      // if closed without answering, keep player at exit until they answer
       if(!tookAction) statusEl.textContent = 'أجب عن السؤال للمتابعة.';
     }
 
     function handleAnswer(idx,q){
-      // mark answers visually
       qOptions.querySelectorAll('button').forEach((b,i)=>{ b.classList.toggle('correct', i===q.correct); });
-      // delay to show feedback
       setTimeout(()=>{
         if(idx===q.correct){
           statusEl.textContent = 'إجابة صحيحة — التقدم للمرحلة التالية.';
-          // advance to next stage if exists
           if(stage < totalStages){
             stage++;
             renderHearts();
             loadStage(stage);
             hideQuestion(true);
           } else {
-            // won the game
             statusEl.textContent = 'مبروك! أنهيت جميع المراحل.';
             hideQuestion(true);
             showVictory();
           }
         } else {
-          // wrong answer: lose a heart and go back a stage (or same if stage1)
           hearts = Math.max(0, hearts-1);
           renderHearts();
           statusEl.textContent = 'خاطئ — تم خصم قلب وإعادة المرحلة.';
           hideQuestion(true);
           if(hearts<=0){
-            // game over
             showGameOver();
             return;
           }
-          // move back one stage if possible
           if(stage>1) stage--;
           loadStage(stage);
         }
@@ -361,7 +430,6 @@
     }
 
     function showVictory(){
-      // simple alert card
       qTitle.textContent = '🎉 تهانينا!';
       qText.textContent = 'لقد أكملت جميع المراحل وفزت باللعبة.';
       qOptions.innerHTML = '';
@@ -385,7 +453,6 @@
       alert('تلميح: '+q.hint);
     }
 
-    // initialize
     init();
   </script>
 </body>
